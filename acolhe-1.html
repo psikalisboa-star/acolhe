@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Acolhe — Painel Clínico</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22 fill=%22%235E7A68%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#F6F1E7;
+    --surface:#FFFFFF;
+    --surface-2:#FBF7EF;
+    --ink:#2C2722;
+    --ink-soft:#766E63;
+    --line:#E8DECC;
+    --sage:#5E7A68;
+    --sage-dark:#43594B;
+    --sage-soft:#E3ECE5;
+    --terracotta:#C97A56;
+    --terracotta-soft:#F4DECE;
+    --warn:#B5532E;
+    --radius:16px;
+    --radius-sm:10px;
+    --shadow:0 4px 18px rgba(44,39,34,.06);
+    --sidebar-w:230px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3,h4{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-.01em;margin:0;}
+  p{margin:0;}
+  button{font-family:inherit;cursor:pointer;}
+  .icon{width:18px;height:18px;stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+
+  /* ---------- Layout ---------- */
+  .app{display:flex;min-height:100vh;}
+  .sidebar{
+    width:var(--sidebar-w);
+    background:var(--sage-dark);
+    color:#F4F0E4;
+    display:flex;flex-direction:column;
+    flex-shrink:0;
+    position:sticky;top:0;height:100vh;
+  }
+  .brand{
+    padding:28px 22px 18px;
+    border-bottom:1px solid rgba(244,240,228,.12);
+  }
+  .brand-mark{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .brand-mark svg{width:30px;height:30px;}
+  .brand h1{font-size:22px;color:#fff;}
+  .brand p{font-size:12.5px;color:#CFE0D4;margin-top:4px;}
+  .wave{display:block;width:100%;height:34px;margin-top:14px;opacity:.55;}
+
+  nav.nav{padding:14px 12px;display:flex;flex-direction:column;gap:3px;flex:1;}
+  .nav-item{
+    display:flex;align-items:center;gap:12px;
+    padding:10px 12px;border-radius:10px;
+    background:none;border:none;color:#E7EFE7;
+    font-size:14.5px;font-weight:500;text-align:left;
+    transition:background .15s ease, color .15s ease;
+  }
+  .nav-item:hover{background:rgba(244,240,228,.08);}
+  .nav-item.active{background:#F4F0E4;color:var(--sage-dark);}
+  .nav-item.active svg{stroke:var(--sage-dark);}
+
+  .sidebar-foot{padding:16px 22px 22px;font-size:12px;color:#C8DACE;border-top:1px solid rgba(244,240,228,.12);}
+
+  .content{flex:1;min-width:0;padding:30px 36px 90px;max-width:1180px;}
+  .topline{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:26px;}
+  .eyebrow{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--sage);font-weight:600;}
+  .topline h2{font-size:28px;margin-top:4px;}
+  .view{display:none;}
+  .view.active{display:block;animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ---------- Generic components ---------- */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;}
+  .grid{display:grid;gap:16px;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  @media(max-width:900px){.grid-3{grid-template-columns:1fr 1fr;} .grid-2{grid-template-columns:1fr;}}
+  @media(max-width:620px){.grid-3{grid-template-columns:1fr;}}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 16px;border-radius:999px;border:1px solid transparent;
+    font-size:14px;font-weight:600;background:var(--surface-2);color:var(--ink);
+    border:1px solid var(--line);
+    transition:transform .12s ease, background .15s ease;
+  }
+  .btn:hover{background:var(--sage-soft);}
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--sage);color:#fff;border-color:var(--sage);}
+  .btn-primary:hover{background:var(--sage-dark);}
+  .btn-accent{background:var(--terracotta);color:#fff;border-color:var(--terracotta);}
+  .btn-accent:hover{background:#B0633E;}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--ink-soft);}
+  .btn-ghost:hover{background:var(--surface-2);}
+  .btn-sm{padding:7px 12px;font-size:12.5px;}
+  .btn-danger{color:var(--warn);}
+  .btn-danger:hover{background:#FBE8E0;}
+  .btn[disabled]{opacity:.55;cursor:default;}
+
+  .input,.select,.textarea{
+    width:100%;padding:10px 12px;border-radius:var(--radius-sm);
+    border:1px solid var(--line);background:var(--surface);
+    font-size:14px;font-family:inherit;color:var(--ink);
+  }
+  .textarea{resize:vertical;min-height:80px;}
+  .input:focus,.select:focus,.textarea:focus{outline:2px solid var(--sage);outline-offset:1px;}
+  label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--ink-soft);}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:560px){.field-row{grid-template-columns:1fr;}}
+
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .badge-sage{background:var(--sage-soft);color:var(--sage-dark);}
+  .badge-terra{background:var(--terracotta-soft);color:#9A4F2D;}
+  .badge-muted{background:var(--surface-2);color:var(--ink-soft);}
+
+  /* ---------- Home ---------- */
+  .stat-card{display:flex;flex-direction:column;gap:6px;}
+  .stat-card .num{font-family:'Fraunces',serif;font-size:34px;font-weight:700;color:var(--sage-dark);}
+  .stat-card .label{font-size:13px;color:var(--ink-soft);}
+  .hero{background:linear-gradient(135deg,var(--sage) 0%, var(--sage-dark) 100%);color:#fff;border-radius:var(--radius);padding:26px 28px;margin-bottom:22px;position:relative;overflow:hidden;}
+  .hero h2{color:#fff;font-size:26px;}
+  .hero p{color:#E4EFE7;margin-top:6px;font-size:14.5px;max-width:520px;}
+  .hero .hero-wave{position:absolute;right:-20px;bottom:-10px;width:240px;height:120px;opacity:.25;}
+  .quick-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+
+  .agenda-item{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);}
+  .agenda-item:last-child{border-bottom:none;}
+  .agenda-time{font-family:'Fraunces',serif;font-weight:700;font-size:17px;color:var(--sage-dark);min-width:58px;}
+  .agenda-info p{font-size:13px;color:var(--ink-soft);}
+  .empty{padding:24px 0;text-align:center;color:var(--ink-soft);font-size:14px;}
+
+  /* ---------- Pacientes ---------- */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .toolbar .input{max-width:280px;}
+  .patient-card{display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color .15s;}
+  .patient-card:hover{border-color:var(--sage);}
+  .avatar{width:44px;height:44px;border-radius:50%;background:var(--sage-soft);color:var(--sage-dark);display:flex;align-items:center;justify-content:center;font-weight:700;font-family:'Fraunces',serif;font-size:17px;flex-shrink:0;}
+  .patient-card .meta h4{font-size:15.5px;}
+  .patient-card .meta p{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+  /* ---------- Modal / panel ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(44,39,34,.38);display:none;align-items:flex-start;justify-content:flex-end;z-index:50;}
+  .overlay.active{display:flex;}
+  .panel{background:var(--surface);width:min(440px,100%);height:100%;overflow-y:auto;padding:26px;box-shadow:-8px 0 30px rgba(0,0,0,.08);animation:slideIn .25s ease;}
+  @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+  .panel-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
+  .modal-center{align-items:center;justify-content:center;}
+  .modal{background:var(--surface);width:min(480px,92vw);border-radius:var(--radius);padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.18);animation:popIn .2s ease;}
+  @keyframes popIn{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .form-stack{display:flex;flex-direction:column;gap:12px;}
+  .form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;}
+
+  /* ---------- Prontuário ---------- */
+  .pront-entry{border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;}
+  .pront-entry h5{font-size:14px;margin-bottom:4px;}
+  .pront-entry .date{font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;}
+  .pront-entry .content{font-size:13.5px;line-height:1.55;white-space:pre-wrap;color:var(--ink);}
+
+  /* ---------- Monitoramento ---------- */
+  .slider-row{display:flex;align-items:center;gap:12px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--sage);}
+  .slider-val{font-family:'Fraunces',serif;font-weight:700;font-size:18px;color:var(--sage-dark);min-width:28px;text-align:center;}
+  .chart-legend{display:flex;gap:18px;font-size:12.5px;margin-bottom:10px;}
+  .chart-legend span{display:flex;align-items:center;gap:6px;}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  table.records{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;}
+  table.records th,table.records td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);}
+  table.records th{color:var(--ink-soft);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+
+  /* ---------- Agendamento ---------- */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .cal-head h3{font-size:18px;text-transform:capitalize;}
+  .cal-nav{display:flex;gap:6px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .cal-dow{text-align:center;font-size:11px;color:var(--ink-soft);font-weight:700;text-transform:uppercase;padding-bottom:4px;}
+  .cal-day{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:600;position:relative;transition:background .15s;}
+  .cal-day.empty-cell{background:transparent;border-color:transparent;}
+  .cal-day:not(.empty-cell):hover{border-color:var(--sage);cursor:pointer;}
+  .cal-day.today{border-color:var(--terracotta);}
+  .cal-day.selected{background:var(--sage);color:#fff;}
+  .cal-dot{width:6px;height:6px;border-radius:50%;background:var(--terracotta);position:absolute;bottom:6px;}
+  .cal-day.selected .cal-dot{background:#fff;}
+  .appt-card{border:1px solid var(--line);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px;}
+  .appt-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .appt-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+  /* ---------- Smart note ---------- */
+  .rec-btn{width:80px;height:80px;border-radius:50%;border:none;background:var(--terracotta);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto;box-shadow:0 6px 18px rgba(201,122,86,.35);transition:transform .15s;}
+  .rec-btn .icon{width:32px;height:32px;}
+  .rec-btn:active{transform:scale(.95);}
+  .rec-btn.recording{background:var(--warn);animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(181,83,46,.45)}70%{box-shadow:0 0 0 18px rgba(181,83,46,0)}100%{box-shadow:0 0 0 0 rgba(181,83,46,0)}}
+  .rec-status{text-align:center;font-size:13px;color:var(--ink-soft);margin-top:10px;}
+  .transcript-box{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;min-height:120px;font-size:13.5px;line-height:1.6;white-space:pre-wrap;max-height:260px;overflow-y:auto;}
+  .summary-box{background:var(--sage-soft);border:1px solid #CFE0D4;border-radius:var(--radius-sm);padding:14px;font-size:13.5px;line-height:1.6;white-space:pre-wrap;}
+
+  /* ---------- Chat / AI ---------- */
+  .chat-window{display:flex;flex-direction:column;gap:12px;min-height:320px;max-height:50vh;overflow-y:auto;padding:6px 2px 10px;}
+  .msg{max-width:80%;padding:11px 14px;border-radius:14px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;}
+  .msg.user{align-self:flex-end;background:var(--sage);color:#fff;border-radius:14px 14px 4px 14px;}
+  .msg.assistant{align-self:flex-start;background:var(--surface-2);border:1px solid var(--line);border-radius:14px 14px 14px 4px;}
+  .chat-input-row{display:flex;gap:8px;margin-top:14px;}
+  .chat-input-row .textarea{min-height:46px;max-height:120px;}
+  .typing{display:flex;gap:4px;padding:6px 0;}
+  .typing span{width:6px;height:6px;border-radius:50%;background:var(--ink-soft);animation:blink 1.2s infinite;}
+  .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+  .section-gap{margin-top:22px;}
+  .muted{color:var(--ink-soft);font-size:13px;}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:8px;}
+
+  /* ---------- Auth screen ---------- */
+  .auth-screen{
+    position:fixed;inset:0;background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    z-index:100;padding:20px;
+  }
+  .auth-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:32px;width:min(380px,100%);}
+  .auth-card .brand-mark{justify-content:center;}
+  .auth-card h1{color:var(--sage-dark);font-size:24px;}
+  .auth-card .eyebrow{display:block;text-align:center;margin-bottom:6px;}
+  .auth-card h2{text-align:center;font-size:20px;margin:6px 0 22px;}
+  .auth-tabs{display:flex;gap:6px;background:var(--surface-2);border-radius:999px;padding:4px;margin-bottom:18px;}
+  .auth-tab{flex:1;padding:8px;border:none;background:transparent;border-radius:999px;font-size:13px;font-weight:600;color:var(--ink-soft);}
+  .auth-tab.active{background:var(--sage);color:#fff;}
+  .auth-error{background:#FBE8E0;color:var(--warn);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;margin-top:10px;display:none;}
+  .auth-error.active{display:block;}
+  .auth-msg{background:var(--sage-soft);color:var(--sage-dark);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;margin-top:10px;display:none;}
+  .auth-msg.active{display:block;}
+  #app-root{display:none;}
+  #app-root.active{display:flex;}
+  .logout-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+
+  /* ---------- Mobile ---------- */
+  @media(max-width:840px){
+    .app{flex-direction:column;}
+    .sidebar{
+      width:100%;height:auto;position:fixed;bottom:0;top:auto;left:0;z-index:40;
+      flex-direction:row;border-top:1px solid rgba(244,240,228,.12);
+    }
+    .brand,.sidebar-foot{display:none;}
+    nav.nav{flex-direction:row;justify-content:space-around;padding:8px 4px;width:100%;}
+    .nav-item{flex-direction:column;gap:4px;font-size:10.5px;padding:6px 4px;border-radius:8px;text-align:center;flex:1;}
+    .nav-item span{display:block;}
+    .content{padding:22px 16px 100px;}
+    .topline h2{font-size:23px;}
+    .panel{width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="brand-mark">
+      <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" stroke="#5E7A68" stroke-width="1.4"/><path d="M9 17c1.5-4 3.5-6 7-6s5.5 2 7 6" stroke="#5E7A68" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="13" r="2.4" fill="#5E7A68"/></svg>
+      <h1>Acolhe</h1>
+    </div>
+    <h2 id="authTitle">Entrar na sua conta</h2>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin">Entrar</button>
+      <button class="auth-tab" id="tabSignup">Criar conta</button>
+    </div>
+    <div class="form-stack">
+      <label class="field">E-mail
+        <input class="input" type="email" id="authEmail" placeholder="seu@email.com" autocomplete="email">
+      </label>
+      <label class="field">Senha
+        <input class="input" type="password" id="authPassword" placeholder="Mínimo 6 caracteres" autocomplete="current-password">
+      </label>
+      <button class="btn btn-primary" id="authSubmit" style="justify-content:center;">Entrar</button>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
+
+<div class="app" id="app-root">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" stroke="#F4F0E4" stroke-width="1.4"/><path d="M9 17c1.5-4 3.5-6 7-6s5.5 2 7 6" stroke="#F4F0E4" stroke-width="1.4" stroke-linecap="round"/><circle cx="16" cy="13" r="2.4" fill="#F4F0E4"/></svg>
+        <h1>Acolhe</h1>
+      </div>
+      <p>Painel da sua prática clínica</p>
+      <svg class="wave" viewBox="0 0 230 34" preserveAspectRatio="none"><path d="M0 17 Q 20 2, 40 17 T 80 17 T 120 17 T 160 17 T 200 17 T 240 17" stroke="#F4F0E4" stroke-width="1.4" fill="none"/></svg>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="home"><svg class="icon"><use href="#i-home"/></svg><span>Início</span></button>
+      <button class="nav-item" data-view="pacientes"><svg class="icon"><use href="#i-users"/></svg><span>Pacientes</span></button>
+      <button class="nav-item" data-view="monitoramento"><svg class="icon"><use href="#i-activity"/></svg><span>Monitoramento</span></button>
+      <button class="nav-item" data-view="agendamento"><svg class="icon"><use href="#i-calendar"/></svg><span>Agendamento</span></button>
+      <button class="nav-item" data-view="notas"><svg class="icon"><use href="#i-mic"/></svg><span>Notas&nbsp;IA</span></button>
+      <button class="nav-item" data-view="assistente"><svg class="icon"><use href="#i-sparkles"/></svg><span>Assistente&nbsp;IA</span></button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="logout-row">
+        <span id="userEmailLabel" style="font-size:11.5px;word-break:break-all;"></span>
+        <button class="btn btn-sm" id="btnLogout" style="background:rgba(244,240,228,.12);color:#F4F0E4;border-color:rgba(244,240,228,.2);">Sair</button>
+      </div>
+      <p style="margin-top:8px;">Seus dados ficam salvos na sua conta e sincronizam entre seus aparelhos.</p>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="content">
+
+    <!-- HOME -->
+    <section class="view active" id="view-home">
+      <div class="hero">
+        <svg class="hero-wave" viewBox="0 0 240 120" preserveAspectRatio="none"><path d="M0 60 Q 30 10, 60 60 T 120 60 T 180 60 T 240 60" stroke="#fff" stroke-width="2" fill="none"/></svg>
+        <span class="eyebrow" style="color:#CFE0D4">acolhe</span>
+        <h2 id="greeting">Olá!</h2>
+        <p id="dateToday"></p>
+        <div class="quick-actions">
+          <button class="btn" style="background:#fff;color:var(--sage-dark)" data-go="pacientes" data-action="new-patient"><svg class="icon"><use href="#i-plus"/></svg> Novo paciente</button>
+          <button class="btn" style="background:#fff;color:var(--sage-dark)" data-go="agendamento" data-action="new-appt"><svg class="icon"><use href="#i-plus"/></svg> Agendar sessão</button>
+          <button class="btn" style="background:#fff;color:var(--sage-dark)" data-go="notas"><svg class="icon"><use href="#i-mic"/></svg> Nova nota inteligente</button>
+        </div>
+      </div>
+
+      <div class="grid grid-3" style="margin-bottom:22px;">
+        <div class="card stat-card"><div class="num" id="statPatients">0</div><div class="label">pacientes ativos</div></div>
+        <div class="card stat-card"><div class="num" id="statToday">0</div><div class="label">sessões hoje</div></div>
+        <div class="card stat-card"><div class="num" id="statWeek">0</div><div class="label">sessões nesta semana</div></div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-bottom:10px;">Agenda de hoje</h3>
+        <div id="todayAgenda"></div>
+      </div>
+    </section>
+
+    <!-- PACIENTES -->
+    <section class="view" id="view-pacientes">
+      <div class="topline"><div><span class="eyebrow">Cadastro</span><h2>Pacientes</h2></div></div>
+      <div class="toolbar">
+        <input class="input" id="patientSearch" placeholder="Buscar paciente...">
+        <button class="btn btn-primary" id="btnNewPatient"><svg class="icon"><use href="#i-plus"/></svg> Novo paciente</button>
+      </div>
+      <div class="grid grid-3" id="patientList"></div>
+    </section>
+
+    <!-- MONITORAMENTO -->
+    <section class="view" id="view-monitoramento">
+      <div class="topline"><div><span class="eyebrow">Acompanhamento</span><h2>Monitoramento</h2></div></div>
+      <div class="card" style="margin-bottom:18px;">
+        <label class="field">Paciente
+          <select class="select" id="monPatientSelect"></select>
+        </label>
+      </div>
+      <div id="monitoramentoBody"></div>
+    </section>
+
+    <!-- AGENDAMENTO -->
+    <section class="view" id="view-agendamento">
+      <div class="topline"><div><span class="eyebrow">Agenda</span><h2>Agendamento</h2></div>
+        <button class="btn btn-primary" id="btnNewAppt"><svg class="icon"><use href="#i-plus"/></svg> Novo agendamento</button>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="cal-head">
+            <button class="btn btn-sm btn-ghost" id="calPrev"><svg class="icon"><use href="#i-chevleft"/></svg></button>
+            <h3 id="calMonthLabel"></h3>
+            <button class="btn btn-sm btn-ghost" id="calNext"><svg class="icon"><use href="#i-chevright"/></svg></button>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+        <div class="card">
+          <h3 id="dayListTitle" style="margin-bottom:12px;">Compromissos</h3>
+          <div id="dayList"></div>
+        </div>
+      </div>
+      <p class="hint">Exporte um convite (.ics) para cada sessão e importe no Google Agenda em "Adicionar &gt; A partir de arquivo".</p>
+
+      <div class="card section-gap">
+        <h3 style="margin-bottom:8px;">Mensagem de lembrete (WhatsApp)</h3>
+        <p class="muted" style="margin-bottom:10px;">Personalize o texto que será enviado. Use {nome}, {data}, {hora} e {duracao} — eles são substituídos automaticamente.</p>
+        <div class="form-stack">
+          <textarea class="textarea" id="whatsTemplate" style="min-height:90px;"></textarea>
+          <div class="form-actions" style="margin-top:0;">
+            <button class="btn" id="btnResetTemplate">Restaurar padrão</button>
+            <button class="btn btn-primary" id="btnSaveTemplate">Salvar mensagem</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTAS INTELIGENTES -->
+    <section class="view" id="view-notas">
+      <div class="topline"><div><span class="eyebrow">Registro de sessão</span><h2>Nota inteligente</h2></div></div>
+      <div class="card" style="margin-bottom:18px;">
+        <label class="field">Paciente da sessão
+          <select class="select" id="notePatientSelect"></select>
+        </label>
+      </div>
+      <div class="card">
+        <button class="rec-btn" id="recBtn"><svg class="icon" id="recIcon"><use href="#i-mic"/></svg></button>
+        <p class="rec-status" id="recStatus">Toque para gravar e transcrever a sessão</p>
+        <div class="section-gap">
+          <h4 style="margin-bottom:8px;">Transcrição</h4>
+          <div class="transcript-box" id="transcriptBox">A transcrição aparecerá aqui durante a gravação...</div>
+        </div>
+        <div class="section-gap" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-accent" id="btnSummary"><svg class="icon"><use href="#i-sparkles"/></svg> Gerar resumo da sessão</button>
+          <button class="btn btn-ghost" id="btnClearNote"><svg class="icon"><use href="#i-trash"/></svg> Limpar</button>
+        </div>
+        <div class="section-gap" id="summaryWrap" style="display:none;">
+          <h4 style="margin-bottom:8px;">Resumo / evolução sugerida</h4>
+          <div class="summary-box" id="summaryBox"></div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-primary" id="btnSaveSummary">Salvar no prontuário do paciente</button>
+          </div>
+        </div>
+      </div>
+      <p class="hint">A transcrição usa o reconhecimento de voz do navegador (funciona melhor no Chrome, em português). O resumo é gerado por IA a partir do texto transcrito — revise sempre antes de salvar.</p>
+      <p class="hint" style="margin-top:6px;"><strong>Sobre o microfone:</strong> se aparecer aviso de bloqueio, é porque o arquivo foi aberto direto do computador (file://) e o Chrome só libera o microfone em endereços "https://" ou em "http://localhost". A forma mais simples de resolver é hospedar este arquivo (gratuitamente, por exemplo na Netlify ou GitHub Pages) e abrir pelo link gerado. Posso te ajudar com isso se quiser.</p>
+    </section>
+
+    <!-- ASSISTENTE IA -->
+    <section class="view" id="view-assistente">
+      <div class="topline"><div><span class="eyebrow">Apoio clínico</span><h2>Assistente IA</h2></div></div>
+
+      <div class="card section-gap" id="aiConfigCard" style="margin-bottom:18px;">
+        <h3 style="margin-bottom:8px;">Configuração da IA (Groq)</h3>
+        <p class="muted" style="margin-bottom:10px;">Cole aqui sua chave gratuita do Groq. Ela é usada para o assistente e para o resumo de sessões. <a href="https://console.groq.com/keys" target="_blank" rel="noopener">Pegar chave gratuita</a></p>
+        <div class="form-stack">
+          <input class="input" type="password" id="groqKeyInput" placeholder="Cole sua chave (começa com gsk_...)">
+          <div class="form-actions" style="margin-top:0;">
+            <button class="btn btn-primary" id="btnSaveGroqKey">Salvar chave</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chat-window" id="chatWindow">
+          <div class="msg assistant">Oi! Posso ajudar a organizar registros, sugerir abordagens com base em evidências, revisar redações de prontuário ou tirar dúvidas administrativas do consultório. Em que posso ajudar?</div>
+        </div>
+        <div class="chat-input-row">
+          <textarea class="textarea" id="chatInput" placeholder="Escreva sua pergunta..."></textarea>
+          <button class="btn btn-primary" id="chatSend"><svg class="icon"><use href="#i-send"/></svg></button>
+        </div>
+      </div>
+      <p class="hint">As respostas são geradas por IA e têm caráter de apoio — a decisão clínica é sempre sua.</p>
+    </section>
+
+  </main>
+</div>
+
+<!-- ICONS -->
+<svg style="display:none">
+  <defs>
+    <g id="i-home"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></g>
+    <g id="i-users"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.2c2.6.4 4.5 2.6 4.5 5.3"/></g>
+    <g id="i-activity"><path d="M3 12h4l2-7 4 14 2-7h6"/></g>
+    <g id="i-calendar"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 3v4"/><path d="M16 3v4"/></g>
+    <g id="i-sparkles"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></g>
+    <g id="i-mic"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 19v3"/><path d="M8 22h8"/></g>
+    <g id="i-plus"><path d="M12 5v14M5 12h14"/></g>
+    <g id="i-x"><path d="M6 6l12 12M18 6 6 18"/></g>
+    <g id="i-edit"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M13.5 6.5l4 4"/></g>
+    <g id="i-trash"><path d="M4 6h16M9 6V4h6v2M6 6l1 14h10l1-14"/></g>
+    <g id="i-chevleft"><path d="M15 5l-7 7 7 7"/></g>
+    <g id="i-chevright"><path d="M9 5l7 7-7 7"/></g>
+    <g id="i-send"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></g>
+    <g id="i-download"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 18v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></g>
+    <g id="i-whats"><path d="M12 3a9 9 0 0 0-7.8 13.4L3 21l4.7-1.2A9 9 0 1 0 12 3Z"/><path d="M8.5 8.7c.2-.5.6-.5 1-.5h.6c.3 0 .5.1.6.4l.6 1.6c.1.3 0 .6-.2.8l-.5.5c.5 1 1.4 1.9 2.4 2.4l.5-.5c.2-.2.5-.3.8-.2l1.6.6c.3.1.4.3.4.6v.6c0 .4 0 .8-.5 1-1.7.7-4.8-.4-6.7-2.3-1.9-1.9-3-5-2.3-6.7Z"/></g>
+  </defs>
+</svg>
+
+<!-- OVERLAYS -->
+<div class="overlay" id="overlayPatientForm"><div class="modal" id="modalPatientForm"></div></div>
+<div class="overlay" id="overlayPatientDetail"><div class="panel" id="panelPatientDetail"></div></div>
+<div class="overlay" id="overlayApptForm"><div class="modal" id="modalApptForm"></div></div>
+<div class="overlay" id="overlayEvoForm"><div class="modal" id="modalEvoForm"></div></div>
+
+<script>
+/* =========================================================
+   SUPABASE — conexão e autenticação
+========================================================= */
+const SUPABASE_URL = 'https://dxzdbrstyqhdsnchtgmn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xm48_6fH4F82q8iiq9L5Fg_wMhCE5bT';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let remoteData = {}; // cache de toda a "data" jsonb do usuário
+
+/* =========================================================
+   STORAGE HELPERS (lêem/escrevem no cache local e sincronizam com Supabase)
+========================================================= */
+async function loadData(key, fallback){
+  return (remoteData && remoteData[key] !== undefined) ? remoteData[key] : fallback;
+}
+async function saveData(key, value){
+  remoteData[key] = value;
+  try{
+    const { error } = await sb.from('app_data')
+      .update({ data: remoteData, updated_at: new Date().toISOString() })
+      .eq('user_id', currentUser.id);
+    if(error) throw error;
+  }catch(e){
+    console.error('Erro ao salvar', key, e);
+    alert('Não foi possível sincronizar agora. Verifique sua conexão com a internet.');
+  }
+}
+
+/* --- Auth UI --- */
+const authScreen = document.getElementById('authScreen');
+const appRoot = document.getElementById('app-root');
+let authMode = 'login';
+
+function setAuthMode(mode){
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode==='login');
+  document.getElementById('tabSignup').classList.toggle('active', mode==='signup');
+  document.getElementById('authTitle').textContent = mode==='login' ? 'Entrar na sua conta' : 'Criar sua conta';
+  document.getElementById('authSubmit').textContent = mode==='login' ? 'Entrar' : 'Criar conta';
+  document.getElementById('authError').classList.remove('active');
+  document.getElementById('authMsg').classList.remove('active');
+}
+document.getElementById('tabLogin').addEventListener('click', ()=>setAuthMode('login'));
+document.getElementById('tabSignup').addEventListener('click', ()=>setAuthMode('signup'));
+
+document.getElementById('authSubmit').addEventListener('click', async ()=>{
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errBox = document.getElementById('authError');
+  const msgBox = document.getElementById('authMsg');
+  errBox.classList.remove('active'); msgBox.classList.remove('active');
+  if(!email || !password){ errBox.textContent = 'Preencha e-mail e senha.'; errBox.classList.add('active'); return; }
+  if(password.length < 6){ errBox.textContent = 'A senha precisa ter no mínimo 6 caracteres.'; errBox.classList.add('active'); return; }
+
+  const btn = document.getElementById('authSubmit');
+  btn.disabled = true;
+  try{
+    if(authMode==='login'){
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+      await onAuthReady(data.session);
+    }else{
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if(error) throw error;
+      if(data.session){
+        await onAuthReady(data.session);
+      }else{
+        msgBox.textContent = 'Conta criada! Verifique seu e-mail para confirmar antes de entrar.';
+        msgBox.classList.add('active');
+      }
+    }
+  }catch(e){
+    let msg = e.message || 'Não foi possível concluir. Tente novamente.';
+    if(msg.includes('Invalid login credentials')) msg = 'E-mail ou senha incorretos.';
+    if(msg.includes('User already registered')) msg = 'Já existe uma conta com esse e-mail. Tente entrar.';
+    errBox.textContent = msg;
+    errBox.classList.add('active');
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('btnLogout').addEventListener('click', async ()=>{
+  if(!confirm('Sair da sua conta neste aparelho?')) return;
+  await sb.auth.signOut();
+  location.reload();
+});
+
+async function onAuthReady(session){
+  currentUser = session.user;
+  document.getElementById('userEmailLabel').textContent = currentUser.email;
+
+  // garante que existe uma linha de dados para este usuário
+  let { data: row, error } = await sb.from('app_data').select('data').eq('user_id', currentUser.id).maybeSingle();
+  if(error){
+    alert('Erro ao carregar seus dados: ' + error.message);
+    return;
+  }
+  if(!row){
+    const { error: insErr } = await sb.from('app_data').insert({ user_id: currentUser.id, data: {} });
+    if(insErr){ alert('Erro ao criar seus dados: ' + insErr.message); return; }
+    remoteData = {};
+  }else{
+    remoteData = row.data || {};
+  }
+
+  authScreen.style.display = 'none';
+  appRoot.classList.add('active');
+  init();
+}
+
+/* checa sessão existente ao carregar a página */
+(async ()=>{
+  const { data } = await sb.auth.getSession();
+  if(data && data.session){
+    await onAuthReady(data.session);
+  }
+})();
+
+/* =========================================================
+   STATE
+========================================================= */
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DOWS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const DEFAULT_WHATS_TEMPLATE = 'Olá, {nome}! Passando para lembrar da sua sessão no dia {data} às {hora}. Até breve!';
+
+const state = {
+  patients: [],
+  appointments: [],
+  moodEntries: [],
+  prontuario: [],
+  calMonth: new Date().getMonth(),
+  calYear: new Date().getFullYear(),
+  selectedDay: null,
+  selectedPatientId: null,
+  chatHistory: [],
+  noteTranscript: '',
+  whatsTemplate: DEFAULT_WHATS_TEMPLATE,
+  groqKey: ''
+};
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function pad(n){ return n.toString().padStart(2,'0'); }
+function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function formatDateBR(iso){ const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; }
+function getPatient(id){ return state.patients.find(p=>p.id===id); }
+function getPatientName(id){ const p=getPatient(id); return p ? p.name : 'Paciente removido'; }
+function initials(name){ return name.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+
+/* =========================================================
+   INIT
+========================================================= */
+async function init(){
+  state.patients = await loadData('patients', []);
+  state.appointments = await loadData('appointments', []);
+  state.moodEntries = await loadData('mood-entries', []);
+  state.prontuario = await loadData('prontuario-entries', []);
+  state.whatsTemplate = await loadData('whatsTemplate', DEFAULT_WHATS_TEMPLATE);
+  state.groqKey = await loadData('groqKey', '');
+
+  setupNav();
+  setupHome();
+  setupPacientes();
+  setupMonitoramento();
+  setupAgendamento();
+  setupNotas();
+  setupAssistente();
+
+  renderAll();
+}
+function renderAll(){
+  renderHome();
+  renderPacientes();
+  renderMonitoramento();
+  renderAgendamento();
+  fillPatientSelects();
+}
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+function setupNav(){
+  document.querySelectorAll('.nav-item').forEach(btn=>{
+    btn.addEventListener('click', ()=> goToView(btn.dataset.view));
+  });
+  document.querySelectorAll('[data-go]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      goToView(btn.dataset.go);
+      if(btn.dataset.action==='new-patient') openPatientForm();
+      if(btn.dataset.action==='new-appt') openApptForm();
+    });
+  });
+}
+function goToView(view){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='view-'+view));
+}
+
+/* =========================================================
+   HOME
+========================================================= */
+function setupHome(){
+  const now = new Date();
+  const hour = now.getHours();
+  const greet = hour<12 ? 'Bom dia' : hour<18 ? 'Boa tarde' : 'Boa noite';
+  document.getElementById('greeting').textContent = `${greet}!`;
+  const opts = {weekday:'long', day:'numeric', month:'long'};
+  document.getElementById('dateToday').textContent = now.toLocaleDateString('pt-BR', opts);
+}
+function renderHome(){
+  document.getElementById('statPatients').textContent = state.patients.length;
+  const today = todayISO();
+  const apptsToday = state.appointments.filter(a=>a.date===today).sort((a,b)=>a.time.localeCompare(b.time));
+  document.getElementById('statToday').textContent = apptsToday.length;
+
+  // sessions this week
+  const now = new Date();
+  const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate()-now.getDay()); startOfWeek.setHours(0,0,0,0);
+  const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate()+7);
+  const weekCount = state.appointments.filter(a=>{
+    const d = new Date(a.date+'T00:00:00');
+    return d>=startOfWeek && d<endOfWeek;
+  }).length;
+  document.getElementById('statWeek').textContent = weekCount;
+
+  const wrap = document.getElementById('todayAgenda');
+  if(apptsToday.length===0){
+    wrap.innerHTML = '<div class="empty">Nenhuma sessão marcada para hoje.</div>';
+  }else{
+    wrap.innerHTML = apptsToday.map(a=>`
+      <div class="agenda-item">
+        <div class="agenda-time">${a.time}</div>
+        <div class="agenda-info">
+          <h4 style="font-size:14.5px;">${getPatientName(a.patientId)}</h4>
+          <p>${a.notes ? a.notes : 'Sessão de acompanhamento'} · ${a.duration||50} min</p>
+        </div>
+      </div>`).join('');
+  }
+}
+
+/* =========================================================
+   PACIENTES
+========================================================= */
+function setupPacientes(){
+  document.getElementById('btnNewPatient').addEventListener('click', ()=>openPatientForm());
+  document.getElementById('patientSearch').addEventListener('input', renderPacientes);
+}
+function renderPacientes(){
+  const term = (document.getElementById('patientSearch').value||'').toLowerCase();
+  const list = document.getElementById('patientList');
+  const filtered = state.patients.filter(p=>p.name.toLowerCase().includes(term));
+  if(filtered.length===0){
+    list.innerHTML = `<div class="card empty" style="grid-column:1/-1">Nenhum paciente cadastrado ainda. Clique em "Novo paciente" para começar.</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(p=>{
+    const last = lastSessionDate(p.id);
+    const evoCount = state.prontuario.filter(e=>e.patientId===p.id).length;
+    return `<div class="card patient-card" data-id="${p.id}">
+      <div class="avatar">${initials(p.name)}</div>
+      <div class="meta" style="flex:1;">
+        <h4>${p.name}</h4>
+        <p>${p.phone ? p.phone : 'Sem telefone'}${last? ' · Última sessão: '+formatDateBR(last) : ''}</p>
+      </div>
+      <span class="badge badge-sage" title="Registros no prontuário">Prontuário · ${evoCount}</span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.patient-card').forEach(card=>{
+    card.addEventListener('click', ()=>openPatientDetail(card.dataset.id));
+  });
+}
+function lastSessionDate(patientId){
+  const past = state.appointments.filter(a=>a.patientId===patientId && a.date<=todayISO()).sort((a,b)=>b.date.localeCompare(a.date));
+  return past.length ? past[0].date : null;
+}
+
+/* --- Patient form (new/edit) --- */
+function openPatientForm(existing){
+  const overlay = document.getElementById('overlayPatientForm');
+  const modal = document.getElementById('modalPatientForm');
+  const isEdit = !!existing;
+  modal.innerHTML = `
+    <div class="modal-head"><h3>${isEdit?'Editar paciente':'Novo paciente'}</h3>
+      <button class="btn btn-ghost btn-sm" data-close><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="form-stack">
+      <label class="field">Nome completo
+        <input class="input" id="pfName" value="${isEdit?existing.name:''}" placeholder="Nome do paciente">
+      </label>
+      <div class="field-row">
+        <label class="field">WhatsApp / telefone
+          <input class="input" id="pfPhone" value="${isEdit?(existing.phone||''):''}" placeholder="55 11 99999-9999">
+        </label>
+        <label class="field">E-mail
+          <input class="input" id="pfEmail" value="${isEdit?(existing.email||''):''}" placeholder="email@exemplo.com">
+        </label>
+      </div>
+      <label class="field">Observações gerais
+        <textarea class="textarea" id="pfNotes" placeholder="Contexto, motivo do encaminhamento, etc.">${isEdit?(existing.notes||''):''}</textarea>
+      </label>
+    </div>
+    <div class="form-actions">
+      ${isEdit?'<button class="btn btn-danger" id="pfDelete">Excluir paciente</button>':''}
+      <button class="btn btn-primary" id="pfSave">${isEdit?'Salvar alterações':'Cadastrar paciente'}</button>
+    </div>
+  `;
+  overlay.classList.add('active');
+  modal.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', ()=>overlay.classList.remove('active')));
+  document.getElementById('pfSave').addEventListener('click', async ()=>{
+    const name = document.getElementById('pfName').value.trim();
+    if(!name){ alert('Informe o nome do paciente.'); return; }
+    const data = {
+      name,
+      phone: document.getElementById('pfPhone').value.trim(),
+      email: document.getElementById('pfEmail').value.trim(),
+      notes: document.getElementById('pfNotes').value.trim()
+    };
+    if(isEdit){
+      Object.assign(existing, data);
+    }else{
+      state.patients.push({id: uid(), createdAt: todayISO(), ...data});
+    }
+    await saveData('patients', state.patients);
+    overlay.classList.remove('active');
+    renderPacientes(); fillPatientSelects(); renderHome();
+  });
+  if(isEdit){
+    document.getElementById('pfDelete').addEventListener('click', async ()=>{
+      if(!confirm('Excluir este paciente e todos os registros associados?')) return;
+      state.patients = state.patients.filter(p=>p.id!==existing.id);
+      state.appointments = state.appointments.filter(a=>a.patientId!==existing.id);
+      state.moodEntries = state.moodEntries.filter(m=>m.patientId!==existing.id);
+      state.prontuario = state.prontuario.filter(e=>e.patientId!==existing.id);
+      await Promise.all([
+        saveData('patients', state.patients),
+        saveData('appointments', state.appointments),
+        saveData('mood-entries', state.moodEntries),
+        saveData('prontuario-entries', state.prontuario)
+      ]);
+      overlay.classList.remove('active');
+      document.getElementById('overlayPatientDetail').classList.remove('active');
+      renderAll();
+    });
+  }
+}
+
+/* --- Patient detail panel --- */
+function openPatientDetail(patientId){
+  const p = getPatient(patientId);
+  if(!p) return;
+  const overlay = document.getElementById('overlayPatientDetail');
+  const panel = document.getElementById('panelPatientDetail');
+  const entries = state.prontuario.filter(e=>e.patientId===patientId).sort((a,b)=>b.date.localeCompare(a.date));
+  panel.innerHTML = `
+    <div class="panel-head">
+      <div>
+        <span class="eyebrow">Paciente</span>
+        <h2 style="font-size:22px;">${p.name}</h2>
+        <p class="muted" style="margin-top:4px;">${p.phone||'Sem telefone'} ${p.email?(' · '+p.email):''}</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" data-close><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    ${p.notes? `<div class="card" style="margin-bottom:16px;"><strong style="font-size:13px;">Observações</strong><p class="muted" style="margin-top:6px;">${p.notes}</p></div>`:''}
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+      <button class="btn btn-sm" id="pdEdit"><svg class="icon"><use href="#i-edit"/></svg> Editar dados</button>
+      <button class="btn btn-sm" id="pdNewEvo"><svg class="icon"><use href="#i-plus"/></svg> Adicionar evolução</button>
+    </div>
+    <h3 style="font-size:16px;margin-bottom:10px;">Prontuário · evolução compilada</h3>
+    <div id="pdEntries">
+      ${entries.length===0?'<div class="empty">Nenhum registro de evolução ainda.</div>':entries.map(e=>`
+        <div class="pront-entry">
+          <span class="badge ${e.source==='ia'?'badge-terra':'badge-sage'}">${e.source==='ia'?'Gerado por IA':'Manual'}</span>
+          <h5 style="margin-top:6px;">${e.title||'Registro de sessão'}</h5>
+          <div class="date">${formatDateBR(e.date)}</div>
+          <div class="content">${e.content}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  overlay.classList.add('active');
+  panel.querySelector('[data-close]').addEventListener('click', ()=>overlay.classList.remove('active'));
+  panel.querySelector('#pdEdit').addEventListener('click', ()=>openPatientForm(p));
+  panel.querySelector('#pdNewEvo').addEventListener('click', ()=>openEvoForm(patientId));
+}
+
+/* --- Manual evolution form --- */
+function openEvoForm(patientId){
+  const overlay = document.getElementById('overlayEvoForm');
+  const modal = document.getElementById('modalEvoForm');
+  modal.innerHTML = `
+    <div class="modal-head"><h3>Nova evolução</h3>
+      <button class="btn btn-ghost btn-sm" data-close><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="form-stack">
+      <div class="field-row">
+        <label class="field">Data
+          <input class="input" type="date" id="evoDate" value="${todayISO()}">
+        </label>
+        <label class="field">Título
+          <input class="input" id="evoTitle" placeholder="Ex.: Sessão de acompanhamento">
+        </label>
+      </div>
+      <label class="field">Conteúdo
+        <textarea class="textarea" id="evoContent" style="min-height:140px;" placeholder="Registro da sessão..."></textarea>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="evoSave">Salvar</button>
+    </div>
+  `;
+  overlay.classList.add('active');
+  modal.querySelector('[data-close]').addEventListener('click', ()=>overlay.classList.remove('active'));
+  modal.querySelector('#evoSave').addEventListener('click', async ()=>{
+    const content = document.getElementById('evoContent').value.trim();
+    if(!content){ alert('Escreva o conteúdo do registro.'); return; }
+    state.prontuario.push({
+      id: uid(), patientId,
+      date: document.getElementById('evoDate').value || todayISO(),
+      title: document.getElementById('evoTitle').value.trim(),
+      content, source:'manual'
+    });
+    await saveData('prontuario-entries', state.prontuario);
+    overlay.classList.remove('active');
+    openPatientDetail(patientId);
+  });
+}
+
+/* Fill all <select> patient lists */
+function fillPatientSelects(){
+  const opts = state.patients.length
+    ? state.patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')
+    : '<option value="">Cadastre um paciente primeiro</option>';
+  ['monPatientSelect','notePatientSelect'].forEach(id=>{
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = opts;
+    if(state.patients.some(p=>p.id===prev)) sel.value = prev;
+  });
+  // appointment form select handled at open time
+}
+
+/* =========================================================
+   MONITORAMENTO
+========================================================= */
+function setupMonitoramento(){
+  document.getElementById('monPatientSelect').addEventListener('change', renderMonitoramento);
+}
+function renderMonitoramento(){
+  const body = document.getElementById('monitoramentoBody');
+  const patientId = document.getElementById('monPatientSelect').value;
+  if(!patientId){
+    body.innerHTML = '<div class="card empty">Cadastre e selecione um paciente para acompanhar o monitoramento.</div>';
+    return;
+  }
+  const entries = state.moodEntries.filter(m=>m.patientId===patientId).sort((a,b)=>a.date.localeCompare(b.date));
+  body.innerHTML = `
+    <div class="card" style="margin-bottom:16px;">
+      <h3 style="margin-bottom:12px;">Novo registro</h3>
+      <div class="form-stack">
+        <div class="field-row">
+          <label class="field">Data
+            <input class="input" type="date" id="moDate" value="${todayISO()}">
+          </label>
+          <div></div>
+        </div>
+        <label class="field">Humor (0 a 10)
+          <div class="slider-row"><input type="range" min="0" max="10" value="5" id="moMood"><span class="slider-val" id="moMoodVal">5</span></div>
+        </label>
+        <label class="field">Ansiedade (0 a 10)
+          <div class="slider-row"><input type="range" min="0" max="10" value="5" id="moAnx"><span class="slider-val" id="moAnxVal">5</span></div>
+        </label>
+        <label class="field">Observações
+          <textarea class="textarea" id="moNotes" placeholder="O que marcou a semana..."></textarea>
+        </label>
+        <div class="form-actions" style="margin-top:0;">
+          <button class="btn btn-primary" id="moSave">Adicionar registro</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:12px;">Evolução ao longo do tempo</h3>
+      ${entries.length<2 ? '<div class="empty">Adicione pelo menos dois registros para ver o gráfico.</div>' : renderMoodChart(entries)}
+      ${entries.length ? `
+      <table class="records">
+        <thead><tr><th>Data</th><th>Humor</th><th>Ansiedade</th><th>Observações</th></tr></thead>
+        <tbody>
+          ${entries.slice().reverse().map(e=>`<tr><td>${formatDateBR(e.date)}</td><td>${e.mood}</td><td>${e.anxiety}</td><td>${e.notes||'—'}</td></tr>`).join('')}
+        </tbody>
+      </table>` : '<div class="empty">Nenhum registro ainda.</div>'}
+    </div>
+  `;
+  const moMood = document.getElementById('moMood'), moAnx = document.getElementById('moAnx');
+  moMood.addEventListener('input', ()=>document.getElementById('moMoodVal').textContent = moMood.value);
+  moAnx.addEventListener('input', ()=>document.getElementById('moAnxVal').textContent = moAnx.value);
+  document.getElementById('moSave').addEventListener('click', async ()=>{
+    state.moodEntries.push({
+      id: uid(), patientId,
+      date: document.getElementById('moDate').value || todayISO(),
+      mood: parseInt(moMood.value,10),
+      anxiety: parseInt(moAnx.value,10),
+      notes: document.getElementById('moNotes').value.trim()
+    });
+    await saveData('mood-entries', state.moodEntries);
+    renderMonitoramento();
+  });
+}
+function renderMoodChart(entries){
+  const W=600,H=170,P=24;
+  const n = entries.length;
+  const x = i => P + i*(W-2*P)/(n-1);
+  const y = v => H-P - (v/10)*(H-2*P);
+  const moodPts = entries.map((e,i)=>`${x(i)},${y(e.mood)}`).join(' ');
+  const anxPts = entries.map((e,i)=>`${x(i)},${y(e.anxiety)}`).join(' ');
+  const labels = entries.map((e,i)=>`<text x="${x(i)}" y="${H-4}" font-size="9" fill="var(--ink-soft)" text-anchor="middle">${e.date.slice(8,10)}/${e.date.slice(5,7)}</text>`).join('');
+  return `
+    <div class="chart-legend">
+      <span><span class="dot" style="background:var(--sage)"></span> Humor</span>
+      <span><span class="dot" style="background:var(--terracotta)"></span> Ansiedade</span>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;">
+      <line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="var(--line)"/>
+      <polyline points="${moodPts}" fill="none" stroke="var(--sage)" stroke-width="2.5"/>
+      <polyline points="${anxPts}" fill="none" stroke="var(--terracotta)" stroke-width="2.5"/>
+      ${labels}
+    </svg>
+  `;
+}
+
+/* =========================================================
+   AGENDAMENTO
+========================================================= */
+function setupAgendamento(){
+  document.getElementById('calPrev').addEventListener('click', ()=>{
+    state.calMonth--; if(state.calMonth<0){state.calMonth=11; state.calYear--;}
+    renderAgendamento();
+  });
+  document.getElementById('calNext').addEventListener('click', ()=>{
+    state.calMonth++; if(state.calMonth>11){state.calMonth=0; state.calYear++;}
+    renderAgendamento();
+  });
+  document.getElementById('btnNewAppt').addEventListener('click', ()=>openApptForm());
+
+  document.getElementById('whatsTemplate').value = state.whatsTemplate;
+  document.getElementById('btnSaveTemplate').addEventListener('click', async ()=>{
+    state.whatsTemplate = document.getElementById('whatsTemplate').value.trim() || DEFAULT_WHATS_TEMPLATE;
+    await saveData('whatsTemplate', state.whatsTemplate);
+    alert('Mensagem salva.');
+  });
+  document.getElementById('btnResetTemplate').addEventListener('click', ()=>{
+    document.getElementById('whatsTemplate').value = DEFAULT_WHATS_TEMPLATE;
+  });
+}
+function renderAgendamento(){
+  document.getElementById('calMonthLabel').textContent = `${MONTHS[state.calMonth]} ${state.calYear}`;
+  const grid = document.getElementById('calGrid');
+  const first = new Date(state.calYear, state.calMonth, 1);
+  const firstDow = first.getDay();
+  const daysInMonth = new Date(state.calYear, state.calMonth+1, 0).getDate();
+  const today = todayISO();
+  if(!state.selectedDay) state.selectedDay = today;
+
+  let html = DOWS.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<firstDow;i++) html += `<div class="cal-day empty-cell"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const iso = `${state.calYear}-${pad(state.calMonth+1)}-${pad(d)}`;
+    const hasAppt = state.appointments.some(a=>a.date===iso);
+    const classes = ['cal-day'];
+    if(iso===today) classes.push('today');
+    if(iso===state.selectedDay) classes.push('selected');
+    html += `<div class="${classes.join(' ')}" data-date="${iso}">${d}${hasAppt?'<span class="cal-dot"></span>':''}</div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('.cal-day:not(.empty-cell)').forEach(cell=>{
+    cell.addEventListener('click', ()=>{ state.selectedDay = cell.dataset.date; renderAgendamento(); });
+  });
+
+  // day list
+  const list = document.getElementById('dayList');
+  const dEntries = state.appointments.filter(a=>a.date===state.selectedDay).sort((a,b)=>a.time.localeCompare(b.time));
+  const dt = new Date(state.selectedDay+'T00:00:00');
+  document.getElementById('dayListTitle').textContent = `Compromissos · ${dt.toLocaleDateString('pt-BR',{weekday:'short', day:'numeric', month:'short'})}`;
+  if(dEntries.length===0){
+    list.innerHTML = '<div class="empty">Nenhum compromisso neste dia.</div>';
+  }else{
+    list.innerHTML = dEntries.map(a=>{
+      const p = getPatient(a.patientId);
+      return `<div class="appt-card">
+        <div class="appt-top">
+          <div>
+            <strong>${a.time}</strong> — ${getPatientName(a.patientId)}
+            <p class="muted">${a.notes||'Sessão de acompanhamento'} · ${a.duration||50} min</p>
+          </div>
+          <span class="badge badge-sage">${a.status||'agendado'}</span>
+        </div>
+        <div class="appt-actions">
+          <button class="btn btn-sm" data-ics="${a.id}"><svg class="icon"><use href="#i-download"/></svg> Exportar .ics</button>
+          <button class="btn btn-sm" data-whats="${a.id}" ${p&&p.phone?'':'disabled'}><svg class="icon"><use href="#i-whats"/></svg> Lembrete WhatsApp</button>
+          <button class="btn btn-sm" data-edit-appt="${a.id}"><svg class="icon"><use href="#i-edit"/></svg></button>
+          <button class="btn btn-sm btn-danger" data-del-appt="${a.id}"><svg class="icon"><use href="#i-trash"/></svg></button>
+        </div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('[data-ics]').forEach(b=>b.addEventListener('click', ()=>downloadICS(b.dataset.ics)));
+    list.querySelectorAll('[data-whats]').forEach(b=>b.addEventListener('click', ()=>sendWhatsAppReminder(b.dataset.whats)));
+    list.querySelectorAll('[data-edit-appt]').forEach(b=>b.addEventListener('click', ()=>{
+      const appt = state.appointments.find(a=>a.id===b.dataset.editAppt);
+      openApptForm(appt);
+    }));
+    list.querySelectorAll('[data-del-appt]').forEach(b=>b.addEventListener('click', async ()=>{
+      if(!confirm('Excluir este agendamento?')) return;
+      state.appointments = state.appointments.filter(a=>a.id!==b.dataset.delAppt);
+      await saveData('appointments', state.appointments);
+      renderAgendamento(); renderHome();
+    }));
+  }
+}
+function openApptForm(existing){
+  if(state.patients.length===0){ alert('Cadastre um paciente antes de criar um agendamento.'); return; }
+  const overlay = document.getElementById('overlayApptForm');
+  const modal = document.getElementById('modalApptForm');
+  const isEdit = !!existing;
+  const patientOpts = state.patients.map(p=>`<option value="${p.id}" ${isEdit&&existing.patientId===p.id?'selected':''}>${p.name}</option>`).join('');
+  modal.innerHTML = `
+    <div class="modal-head"><h3>${isEdit?'Editar agendamento':'Novo agendamento'}</h3>
+      <button class="btn btn-ghost btn-sm" data-close><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="form-stack">
+      <label class="field">Paciente
+        <select class="select" id="apPatient">${patientOpts}</select>
+      </label>
+      <div class="field-row">
+        <label class="field">Data
+          <input class="input" type="date" id="apDate" value="${isEdit?existing.date:(state.selectedDay||todayISO())}">
+        </label>
+        <label class="field">Horário
+          <input class="input" type="time" id="apTime" value="${isEdit?existing.time:'09:00'}">
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field">Duração (min)
+          <input class="input" type="number" id="apDuration" value="${isEdit?(existing.duration||50):50}">
+        </label>
+        <label class="field">Status
+          <select class="select" id="apStatus">
+            ${['agendado','realizado','cancelado'].map(s=>`<option value="${s}" ${isEdit&&existing.status===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+      <label class="field">Observações
+        <textarea class="textarea" id="apNotes">${isEdit?(existing.notes||''):''}</textarea>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="apSave">${isEdit?'Salvar':'Agendar'}</button>
+    </div>
+  `;
+  overlay.classList.add('active');
+  modal.querySelector('[data-close]').addEventListener('click', ()=>overlay.classList.remove('active'));
+  modal.querySelector('#apSave').addEventListener('click', async ()=>{
+    const data = {
+      patientId: document.getElementById('apPatient').value,
+      date: document.getElementById('apDate').value,
+      time: document.getElementById('apTime').value,
+      duration: parseInt(document.getElementById('apDuration').value,10)||50,
+      status: document.getElementById('apStatus').value,
+      notes: document.getElementById('apNotes').value.trim()
+    };
+    if(!data.date || !data.time){ alert('Informe data e horário.'); return; }
+    if(isEdit){ Object.assign(existing, data); }
+    else{ state.appointments.push({id: uid(), ...data}); }
+    await saveData('appointments', state.appointments);
+    state.selectedDay = data.date;
+    overlay.classList.remove('active');
+    renderAgendamento(); renderHome();
+  });
+}
+function downloadICS(apptId){
+  const a = state.appointments.find(x=>x.id===apptId);
+  if(!a) return;
+  const patientName = getPatientName(a.patientId);
+  const [h,m] = a.time.split(':').map(Number);
+  const [y,mo,d] = a.date.split('-').map(Number);
+  const start = new Date(y, mo-1, d, h, m);
+  const end = new Date(start.getTime() + (a.duration||50)*60000);
+  const fmt = dt => `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Acolhe//Painel Clinico//PT-BR',
+    'BEGIN:VEVENT',
+    `UID:${a.id}@acolhe`,
+    `DTSTAMP:${fmt(new Date())}`,
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:Sessão - ${patientName}`,
+    `DESCRIPTION:${(a.notes||'Sessão de acompanhamento').replace(/\n/g,'\\n')}`,
+    'END:VEVENT','END:VCALENDAR'
+  ].join('\r\n');
+  const blob = new Blob([ics], {type:'text/calendar'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = `sessao-${patientName.replace(/\s+/g,'_')}-${a.date}.ics`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+function sendWhatsAppReminder(apptId){
+  const a = state.appointments.find(x=>x.id===apptId);
+  if(!a) return;
+  const p = getPatient(a.patientId);
+  if(!p || !p.phone){ alert('Cadastre o telefone do paciente para enviar o lembrete.'); return; }
+  const phone = p.phone.replace(/\D/g,'');
+  const template = state.whatsTemplate || DEFAULT_WHATS_TEMPLATE;
+  const msg = template
+    .replace(/{nome}/g, p.name)
+    .replace(/{data}/g, formatDateBR(a.date))
+    .replace(/{hora}/g, a.time)
+    .replace(/{duracao}/g, String(a.duration||50));
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+/* =========================================================
+   GROQ — chamada de IA
+========================================================= */
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+async function callAI(systemPrompt, messages){
+  if(!state.groqKey){
+    throw new Error('Configure sua chave de IA na aba Assistente IA antes de usar este recurso.');
+  }
+  let res;
+  try{
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': 'Bearer ' + state.groqKey
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{ role:'system', content: systemPrompt }, ...messages]
+      })
+    });
+  }catch(e){
+    throw new Error('Não foi possível conectar ao serviço de IA. Verifique sua internet e tente novamente.');
+  }
+  if(!res.ok){
+    const errBody = await res.json().catch(()=>({}));
+    const reason = errBody?.error?.message || res.statusText;
+    throw new Error('Erro na IA: ' + reason);
+  }
+  const data = await res.json();
+  return (data?.choices?.[0]?.message?.content || '').trim();
+}
+
+/* =========================================================
+   NOTAS INTELIGENTES (Smart note)
+========================================================= */
+let recognition = null;
+let isRecording = false;
+const SUMMARY_SYSTEM_PROMPT = `Você é uma assistente de apoio a psicólogos. Transforme a transcrição de uma sessão terapêutica em um registro de evolução clínica, estruturado nos seguintes tópicos, sempre em português:
+- Queixa principal / temas trazidos
+- Conteúdo e observações da sessão
+- Estado emocional observado
+- Encaminhamentos / plano para a próxima sessão
+Seja objetiva, profissional e use linguagem clínica adequada. Não invente informações que não estejam na transcrição. Se a transcrição for muito curta ou pouco clara, registre isso de forma honesta.`;
+
+function setupNotas(){
+  document.getElementById('recBtn').addEventListener('click', toggleRecording);
+  document.getElementById('btnSummary').addEventListener('click', generateSummary);
+  document.getElementById('btnClearNote').addEventListener('click', clearNote);
+  document.getElementById('btnSaveSummary').addEventListener('click', saveSummaryToProntuario);
+}
+function toggleRecording(){
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const btn = document.getElementById('recBtn');
+  const status = document.getElementById('recStatus');
+  const isSecure = window.isSecureContext;
+  if(!isRecording){
+    if(!SpeechRec){
+      alert('Seu navegador não tem suporte ao reconhecimento de voz. Use o Google Chrome para gravar e transcrever.');
+      return;
+    }
+    if(!isSecure){
+      alert('Para gravar e transcrever, o navegador exige uma conexão segura (https) ou abrir o arquivo a partir de um servidor local. Abrindo o arquivo direto do computador (file://), o microfone fica bloqueado por segurança do navegador. Veja as instruções abaixo do botão para liberar isso.');
+      return;
+    }
+    recognition = new SpeechRec();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (e)=>{
+      let finalText = '';
+      for(let i=e.resultIndex; i<e.results.length; i++){
+        if(e.results[i].isFinal) finalText += e.results[i][0].transcript + ' ';
+      }
+      if(finalText){
+        state.noteTranscript += finalText;
+        document.getElementById('transcriptBox').textContent = state.noteTranscript;
+      }
+    };
+    recognition.onerror = ()=>{};
+    recognition.onend = ()=>{ if(isRecording){ try{ recognition.start(); }catch(e){} } };
+    try{ recognition.start(); }catch(e){}
+    isRecording = true;
+    btn.classList.add('recording');
+    status.textContent = 'Gravando e transcrevendo... toque novamente para parar.';
+    if(state.noteTranscript==='') document.getElementById('transcriptBox').textContent = '';
+  }else{
+    isRecording = false;
+    if(recognition){ recognition.onend = null; recognition.stop(); }
+    btn.classList.remove('recording');
+    status.textContent = 'Gravação finalizada. Revise a transcrição e gere o resumo.';
+  }
+}
+async function generateSummary(){
+  const transcript = state.noteTranscript.trim();
+  if(!transcript){ alert('Grave a sessão para ter uma transcrição antes de gerar o resumo.'); return; }
+  const btn = document.getElementById('btnSummary');
+  btn.disabled = true; btn.textContent = 'Gerando resumo...';
+  try{
+    const text = await callAI(SUMMARY_SYSTEM_PROMPT, [
+      { role:'user', content: `Transcrição da sessão:\n\n${transcript}` }
+    ]);
+    document.getElementById('summaryBox').textContent = text || 'Não foi possível gerar o resumo.';
+    document.getElementById('summaryWrap').style.display = 'block';
+  }catch(e){
+    alert(e.message || 'Não foi possível gerar o resumo agora. Tente novamente em instantes.');
+  }finally{
+    btn.disabled = false; btn.innerHTML = '<svg class="icon"><use href="#i-sparkles"/></svg> Gerar resumo da sessão';
+  }
+}
+async function saveSummaryToProntuario(){
+  const patientId = document.getElementById('notePatientSelect').value;
+  if(!patientId){ alert('Selecione o paciente da sessão.'); return; }
+  const content = document.getElementById('summaryBox').textContent.trim();
+  if(!content){ return; }
+  state.prontuario.push({
+    id: uid(), patientId, date: todayISO(),
+    title: 'Resumo de sessão (gerado por IA)',
+    content, source: 'ia'
+  });
+  await saveData('prontuario-entries', state.prontuario);
+  alert('Resumo salvo no prontuário do paciente.');
+}
+function clearNote(){
+  if(isRecording) toggleRecording();
+  state.noteTranscript = '';
+  document.getElementById('transcriptBox').textContent = 'A transcrição aparecerá aqui durante a gravação...';
+  document.getElementById('recStatus').textContent = 'Toque para gravar e transcrever a sessão';
+  document.getElementById('summaryWrap').style.display = 'none';
+  document.getElementById('summaryBox').textContent = '';
+}
+
+/* =========================================================
+   ASSISTENTE IA (chat)
+========================================================= */
+const ASSISTANT_SYSTEM_PROMPT = `Você é uma assistente de apoio integrada a um sistema de gestão para psicólogos clínicos. Ajude com: redação e revisão de registros de prontuário, sugestões de abordagens terapêuticas com base em evidências, organização de agenda e tarefas administrativas do consultório. Responda em português, de forma objetiva, profissional e prática. Sempre deixe claro que a decisão clínica final é do profissional.`;
+
+function setupAssistente(){
+  document.getElementById('chatSend').addEventListener('click', sendChat);
+  document.getElementById('chatInput').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
+  });
+  document.getElementById('groqKeyInput').value = state.groqKey;
+  document.getElementById('btnSaveGroqKey').addEventListener('click', async ()=>{
+    const key = document.getElementById('groqKeyInput').value.trim();
+    if(!key){ alert('Cole uma chave válida.'); return; }
+    state.groqKey = key;
+    await saveData('groqKey', key);
+    alert('Chave salva! Já pode usar o assistente e o resumo de sessões.');
+  });
+}
+async function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const win = document.getElementById('chatWindow');
+  win.insertAdjacentHTML('beforeend', `<div class="msg user">${escapeHTML(text)}</div>`);
+  state.chatHistory.push({role:'user', content:text});
+  input.value = '';
+  win.scrollTop = win.scrollHeight;
+
+  const typingId = 'typing-'+uid();
+  win.insertAdjacentHTML('beforeend', `<div class="msg assistant" id="${typingId}"><div class="typing"><span></span><span></span><span></span></div></div>`);
+  win.scrollTop = win.scrollHeight;
+
+  try{
+    const reply = await callAI(ASSISTANT_SYSTEM_PROMPT, state.chatHistory) || 'Não consegui gerar uma resposta agora.';
+    state.chatHistory.push({role:'assistant', content:reply});
+    document.getElementById(typingId).outerHTML = `<div class="msg assistant">${escapeHTML(reply)}</div>`;
+  }catch(e){
+    state.chatHistory.pop();
+    document.getElementById(typingId).outerHTML = `<div class="msg assistant">${escapeHTML(e.message || 'Não foi possível responder agora. Tente novamente em instantes.')}</div>`;
+  }
+  win.scrollTop = win.scrollHeight;
+}
+function escapeHTML(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* =========================================================
+   START
+   (init() é chamado a partir de onAuthReady, após login)
+========================================================= */
+</script>
+</body>
+</html>
