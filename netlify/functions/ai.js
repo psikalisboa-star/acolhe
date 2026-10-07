@@ -26,8 +26,9 @@ exports.handler = async function(event) {
         'Authorization': 'Bearer ' + GROQ_KEY
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: body.messages
+        model: 'llama-3.1-8b-instant',
+        messages: body.messages,
+        max_tokens: 2048
       })
     });
 
